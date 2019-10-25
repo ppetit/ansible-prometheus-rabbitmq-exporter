@@ -9,14 +9,13 @@ StartLimitInterval=0
 Type=simple
 User={{ rabbitmq_exporter_system_user }}
 Group={{ rabbitmq_exporter_system_group }}
+{% for flag, value in rabbitmq_exporter_config_flags.items() %}
+Environment="{% filter upper %}{{flag}}{% endfilter %}={{value}}"
+{% endfor %}
 ExecStart=/usr/local/bin/rabbitmq_exporter
 SyslogIdentifier=rabbitmq_exporter
 Restart=always
 RestartSec=1
-
-{% for flag, value in rabbitmq_exporter_config_flags.items() %}
-Environment={% filter upper %}{{flag}}{% endfilter %}={{value}}
-{% endfor %}
 
 PrivateTmp=yes
 {% for m in ansible_mounts if m.mount == '/home' %}

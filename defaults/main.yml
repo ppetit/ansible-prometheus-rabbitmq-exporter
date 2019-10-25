@@ -13,7 +13,8 @@ rabbitmq_exporter_config_flags:
   'rabbit_password': 'guest'
   'rabbit_user_file': ''
   'rabbit_password_file': ''
-  'publish_port': '9090'
+  'publish_port': "{{ rabbitmq_exporter_web_listen_address.split(':')[-1] }}"
+  'publish_addr': "{{ rabbitmq_exporter_web_listen_address.split(':')[0] }}"
   'output_format': 'TTY'
   'log_level': 'info'
   'cafile': 'ca.pem'
