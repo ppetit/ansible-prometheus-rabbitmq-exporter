@@ -1,0 +1,70 @@
+---
+- name: Install dependencies
+  package:
+    name: "{{ item }}"
+    state: present
+  register: _install_dep_packages
+  until: _install_dep_packages is success
+  retries: 5
+  delay: 2
+  with_items: "{{ rabbitmq_exporter_dependencies }}"
+
+- name: Create the rabbitmq_exporter group
+  group:
+    name: "{{ rabbitmq_exporter_system_group }}"
+    state: present
+    system: true
+  when: rabbitmq_exporter_system_group != "root"
+
+- name: Create the rabbitmq_exporter user
+  user:
+    name: "{{ rabbitmq_exporter_system_user }}"
+    groups: "{{ rabbitmq_exporter_system_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    createhome: false
+    home: /
+  when: rabbitmq_exporter_system_user != "root"
+
+- name: Download rabbitmq_exporter binary to local folder
+  become: false
+  get_url:
+    url: "{{ rabbitmq_exporter_download_url }}{{ rabbitmq_exporter_version }}/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}.tar.gz"
+    dest: "/tmp/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}.tar.gz"
+    checksum: "sha256:{{ rabbitmq_exporter_checksum | default(omit) }}"
+    url_username: "{{ rabbitmq_exporter_download_auth.username | default(omit) }}"
+    url_password: "{{ rabbitmq_exporter_download_auth.password | default(omit) }}"
+    validate_certs: "{{ rabbitmq_exporter_download_auth.validate_certs | default(true) }}"
+  register: _download_binary
+  until: _download_binary is succeeded
+  retries: 5
+  delay: 2
+  delegate_to: localhost
+  run_once: true
+  check_mode: false
+
+- name: Unpack rabbitmq_exporter binary
+  become: false
+  unarchive:
+    src: "/tmp/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}.tar.gz"
+    dest: "/tmp"
+    creates: "/tmp/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}/rabbitmq_exporter"
+  delegate_to: localhost
+  check_mode: false
+
+- name: Create /usr/local/bin
+  file:
+    path: /usr/local/bin
+    state: directory
+    mode: 0755
+
+- name: Propagate rabbitmq_exporter binaries
+  copy:
+    src: "/tmp/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}/rabbitmq_exporter"
+    dest: "/usr/local/bin/rabbitmq_exporter"
+    mode: 0755
+    owner: root
+    group: root
+  notify: restart rabbitmq_exporter
+  when: not ansible_check_mode

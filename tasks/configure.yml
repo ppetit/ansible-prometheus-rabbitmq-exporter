@@ -1,0 +1,19 @@
+---
+- name: Copy the RabbitMQ Exporter systemd service file
+  template:
+    src: rabbitmq_exporter.service.j2
+    dest: /etc/systemd/system/rabbitmq_exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart rabbitmq_exporter
+
+- name: Allow RabbitMQ Exporter port in SELinux on RedHat OS family
+  seport:
+    ports: "{{ rabbitmq_exporter_web_listen_address.split(':')[-1] }}"
+    proto: tcp
+    setype: http_port_t
+    state: present
+  when:
+    - ansible_version.full is version_compare('2.4', '>=')
+    - ansible_selinux.status == "enabled"

@@ -1,51 +1,42 @@
 ---
+- name: Gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_version | lower }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version | lower }}.yml"
+    - "{{ ansible_distribution_file_variety | lower }}.yml"
+    - "{{ ansible_os_family | lower }}-{{ ansible_distribution_major_version | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_os_family | lower }}-{{ ansible_distribution_version.split('.')[0] }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
+  tags:
+    - rabbitmq_exporter_install
+    - rabbitmq_exporter_configure
+    - rabbitmq_exporter_run
 
-- name: download prometheus rabbitmq exporter binary
-  get_url:
-    url: "{{ prometheus_rabbitmq_exporter_url }}"
-    dest: "{{ prometheus_exporters_common_dist_dir }}/{{ prometheus_rabbitmq_exporter_release_name }}.tar.gz"
+- import_tasks: preflight.yml
+  tags:
+    - rabbitmq_exporter_install
+    - rabbitmq_exporter_configure
+    - rabbitmq_exporter_run
 
-- name: unarchive binary tarball
-  unarchive:
-    copy: no
-    src: "{{ prometheus_exporters_common_dist_dir }}/{{ prometheus_rabbitmq_exporter_release_name }}.tar.gz"
-    dest: "{{ prometheus_exporters_common_dist_dir }}"
-    creates: "{{ prometheus_exporters_common_dist_dir }}/{{ prometheus_rabbitmq_exporter_release_name }}/rabbitmq_exporter"
-  register: prometheus_rabbitmq_exporter_updated
-  notify:
-    - restart rabbitmq exporter
+- import_tasks: install.yml
+  become: true
+  when: (not __rabbitmq_exporter_is_installed.stat.exists) or (__rabbitmq_exporter_current_version_output.stderr_lines[0].split(" ")[2] != rabbitmq_exporter_version)
+  tags:
+    - rabbitmq_exporter_install
 
-- name: update group and owner for files
-  file:
-    path: "{{ prometheus_rabbitmq_exporter_release_name }}"
-    state: directory
-    recurse: yes
-    owner: "{{ prometheus_exporters_common_user}}"
-    group: "{{ prometheus_exporters_common_group }}"
-  when: prometheus_rabbitmq_exporter_updated is changed
+- import_tasks: configure.yml
+  become: true
+  tags:
+    - rabbitmq_exporter_configure
 
-- name: create symlink to the current release
-  file:
-    src: "{{ prometheus_exporters_common_dist_dir }}/{{ prometheus_rabbitmq_exporter_release_name }}"
-    path: "{{ prometheus_exporters_common_root_dir }}/rabbitmq_exporter_current"
-    state: link
-
-- name: create systemd service unit
-  template:
-    src: etc/systemd/system/prometheus-rabbitmq-exporter.service.j2
-    dest: /etc/systemd/system/prometheus-rabbitmq-exporter.service
-    owner: root
-    group: root
-    mode: 0644
-  when: ansible_service_mgr == 'systemd'
-  notify:
-    - rabbitmq exporter service reenable
-    - restart rabbitmq exporter
-
-- meta: flush_handlers
-
-- name: ensure prometheus rabbitmq exporter service is enabled and started
-  service:
-    name: prometheus-rabbitmq-exporter
+- name: Ensure RabbitMQ Exporter is enabled on boot
+  become: true
+  systemd:
+    daemon_reload: true
+    name: rabbitmq_exporter
+    enabled: true
     state: started
-    enabled: yes
+  tags:
+    - rabbitmq_exporter_run

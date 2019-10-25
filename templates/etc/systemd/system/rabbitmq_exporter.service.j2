@@ -1,0 +1,39 @@
+{{ ansible_managed | comment }}
+
+[Unit]
+Description=Prometheus RabbitMQ Exporter
+After=network-online.target
+StartLimitInterval=0
+
+[Service]
+Type=simple
+User={{ rabbitmq_exporter_system_user }}
+Group={{ rabbitmq_exporter_system_group }}
+ExecStart=/usr/local/bin/rabbitmq_exporter
+SyslogIdentifier=rabbitmq_exporter
+Restart=always
+RestartSec=1
+
+{% for flag, value in rabbitmq_exporter_config_flags.items() %}
+Environment={% filter upper %}{{flag}}{% endfilter %}={{value}}
+{% endfor %}
+
+PrivateTmp=yes
+{% for m in ansible_mounts if m.mount == '/home' %}
+ProtectHome=read-only
+{% else %}
+ProtectHome=yes
+{% endfor %}
+NoNewPrivileges=yes
+
+{% if rabbitmq_exporter_systemd_version | int >= 232 %}
+ProtectSystem=strict
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=yes
+{% else %}
+ProtectSystem=full
+{% endif %}
+
+[Install]
+WantedBy=multi-user.target
