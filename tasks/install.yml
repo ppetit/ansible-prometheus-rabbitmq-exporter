@@ -32,7 +32,7 @@
   get_url:
     url: "{{ rabbitmq_exporter_download_url }}{{ rabbitmq_exporter_version }}/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}.tar.gz"
     dest: "/tmp/rabbitmq_exporter-{{ rabbitmq_exporter_version }}.linux-{{ go_arch }}.tar.gz"
-    checksum: "sha256:{{ rabbitmq_exporter_checksum | default(omit) }}"
+#   checksum: "sha256:{{ rabbitmq_exporter_checksum | default(omit) }}"
     url_username: "{{ rabbitmq_exporter_download_auth.username | default(omit) }}"
     url_password: "{{ rabbitmq_exporter_download_auth.password | default(omit) }}"
     validate_certs: "{{ rabbitmq_exporter_download_auth.validate_certs | default(true) }}"
