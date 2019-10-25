@@ -22,7 +22,7 @@
 
 - import_tasks: install.yml
   become: true
-  when: (not __rabbitmq_exporter_is_installed.stat.exists) or (__rabbitmq_exporter_current_version_output.stderr_lines[0].split(" ")[2] != rabbitmq_exporter_version)
+# when: (not __rabbitmq_exporter_is_installed.stat.exists) or (__rabbitmq_exporter_current_version_output.stderr_lines[0].split(" ")[2] != rabbitmq_exporter_version)
   tags:
     - rabbitmq_exporter_install
 

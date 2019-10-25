@@ -28,14 +28,17 @@
   tags:
     - rabbitmq_exporter_install
 
-- name: Gather currently installed rabbitmq_exporter version (if any)
-  command: "/usr/local/bin/rabbitmq_exporter --version"
-  args:
-    warn: false
-  changed_when: false
-  register: __rabbitmq_exporter_current_version_output
-  when: __rabbitmq_exporter_is_installed.stat.exists
-  tags:
-    - rabbitmq_exporter_install
-    - skip_ansible_lint
+##
+# Note PP: rabbitmq_exporter --version
+# is not supported.
+#- name: Gather currently installed rabbitmq_exporter version (if any)
+#  command: "/usr/local/bin/rabbitmq_exporter --version"
+#  args:
+#    warn: false
+#  changed_when: false
+#  register: __rabbitmq_exporter_current_version_output
+#  when: __rabbitmq_exporter_is_installed.stat.exists
+#  tags:
+#    - rabbitmq_exporter_install
+#    - skip_ansible_lint
     
